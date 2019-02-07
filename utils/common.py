@@ -19,7 +19,7 @@ def makesure_dir(dirname):
     os.makedirs(dirname, exist_ok = True)
 
 def log_init(log_file):
-    log_f = open(log_file,  'w')
+    log_f = open(log_file,  'a+')
     sys.stdout = log_f
     sys.stderr = log_f
 

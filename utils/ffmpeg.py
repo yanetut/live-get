@@ -133,6 +133,7 @@ def reencode_video(src, gpu=False):
         os.rename(out_file, src)
     else:
         os.remove(out_file)
+    return 0
 
 
 def flv_to_mp4(src):
