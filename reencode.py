@@ -26,11 +26,17 @@ dir_src = os.path.join(dir_reencode, 'src')
 dir_dst = os.path.join(dir_reencode, 'zard')
 
 reencode_flag = False
+src_empty_flag = False
+dst_empty_flag = False
 
 def check_dir_src():
     log_print('check_dir_src')
+    global src_empty_flag
     global reencode_flag
     live_dates = os.listdir(dir_src)
+    if not live_dates:
+        src_empty_flag = True
+        return
     for live_date in live_dates:
         date_path = os.path.join(dir_src, live_date)
         files = os.listdir(date_path)
@@ -67,7 +73,11 @@ def check_dir_src():
 
 def check_dir_dst():
     log_print('check_dir_dst')
+    global dst_empty_flag
     live_dates = list_only_dir(dir_dst)
+    if not live_dates:
+        dst_empty_flag = True
+        return
     for live_date in live_dates:
         date_path = os.path.join(dir_dst, live_date)
         files = os.listdir(date_path)
@@ -104,6 +114,9 @@ def main():
             check_dir_dst()
         else:
             reencode_flag = False
+        if src_empty_flag and dst_empty_flag:
+            # all reencode finished, shutdown
+            os.system('shutdown -s -t 0')
 
 if __name__ == '__main__':
     main()
