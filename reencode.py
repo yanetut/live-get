@@ -39,6 +39,8 @@ def check_dir_src():
         return
     for live_date in live_dates:
         date_path = os.path.join(dir_src, live_date)
+        if not os.path.exists(date_path):
+            continue
         files = os.listdir(date_path)
         if not files:
             try:
@@ -49,6 +51,8 @@ def check_dir_src():
             continue
         for file_name in files:
             file_path = os.path.join(date_path, file_name)
+            if not os.path.exists(file_path):
+                continue
             if re.match(r'.*\.xml$', file_name):
                 os.remove(file_path)
                 log_print('delete danmaku file %s' % file_path)
@@ -80,6 +84,8 @@ def check_dir_dst():
         return
     for live_date in live_dates:
         date_path = os.path.join(dir_dst, live_date)
+        if not os.path.exists(date_path):
+            continue
         files = os.listdir(date_path)
         if not files:
             try:
