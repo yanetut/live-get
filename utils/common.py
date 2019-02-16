@@ -96,5 +96,8 @@ def exist_cmd(cmd):
             return True
     return False
 
+def ping(address):
+    return not os.system('ping %s -n 1' % address)
+
 if __name__ == '__main__':
     print(exist_cmd('ffmpeg_g.exe'))

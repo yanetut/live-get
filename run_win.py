@@ -17,6 +17,7 @@ from utils.common import log_init
 from utils.common import log_print
 from utils.common import get_delta_minute
 from utils.common import exist_cmd
+from utils.common import ping
 from utils.site import make_site_cover
 from utils.site import make_site_screenshot
 from utils.site import make_site_moment
@@ -39,6 +40,10 @@ sleep_sec = 30
 live_max_minute =  120
 danmu_record = None
 max_moments = []
+# reencode machine
+use_reencode = True
+reencode_host = 'YANETUT_PC'
+reencode_path = '\\\\%s\\src\\' % reencode_host
 # win10 toast
 toaster = ToastNotifier()
 toast_title = live_id.upper()
@@ -168,6 +173,9 @@ def check_live_upload():
                     log_print('add live file: %s' % os.path.join(ldir, f))
             for live_file in todo_live_list:
                 if re.match('.*.flv$', live_file):
+                    # use reencode machine
+                    if use_reencode and ping(reencode_host):
+                        continue
                     if exist_cmd('ffmpeg_g.exe'):
                         # PC上直接GPU转码
                         log_print('reencode live video file: %s' % live_file)
@@ -357,11 +365,22 @@ def work_upload():
             max_moments = new_max_moments
             # move to cloud dir
             for live_file in todo_live_list:
+                local_upload = True
                 todo_date = os.path.basename(os.path.dirname(live_file))
-                dir_cloud_live_date = os.path.join(dir_cloud_live, todo_date)
-                makesure_dir(dir_cloud_live_date)
-                shutil.move(live_file, dir_cloud_live_date)
-                cloud_manager.add_cloud(dir_cloud_live_date)
+                if use_reencode and re.match('.*.flv$', live_file) and ping(reencode_host):
+                    try:
+                        dir_reencode_live_date = os.path.join(reencode_path, todo_date)
+                        makesure_dir(dir_reencode_live_date)
+                        shutil.move(live_file, dir_reencode_live_date)
+                        local_upload = False
+                    except Exception as e:
+                        log_print(e, lv=1)
+                        local_upload = True
+                if local_upload:
+                    dir_cloud_live_date = os.path.join(dir_cloud_live, todo_date)
+                    makesure_dir(dir_cloud_live_date)
+                    shutil.move(live_file, dir_cloud_live_date)
+                    cloud_manager.add_cloud(dir_cloud_live_date)
         # rm empty lives dir
         live_dates = list_only_dir(dir_live)
         for live_date in live_dates:
