@@ -369,9 +369,14 @@ def work_upload():
                 todo_date = os.path.basename(os.path.dirname(live_file))
                 if use_reencode and re.match('.*.flv$', live_file) and ping(reencode_host):
                     try:
+                        fname = os.path.basename(live_file)
                         dir_reencode_live_date = os.path.join(reencode_path, todo_date)
+                        dst_file_temp = os.path.join(dir_reencode_live_date, fname + '.temp')
+                        dst_file = os.path.join(dir_reencode_live_date, fname)
                         makesure_dir(dir_reencode_live_date)
-                        shutil.move(live_file, dir_reencode_live_date)
+                        shutil.move(live_file, dst_file_temp)
+                        os.rename(dst_file_temp, dst_file)
+                        log_print('upload to reencode %s SUCCESS' % live_file)
                         local_upload = False
                     except Exception as e:
                         log_print(e, lv=1)

@@ -37,10 +37,13 @@ def check_dir_src():
     if not live_dates:
         src_empty_flag = True
         return
+    src_empty_flag = False
+    # find latest file to reencode
+    live_dates.reverse()
+    reencode_file = None
+    reencode_date = None
     for live_date in live_dates:
         date_path = os.path.join(dir_src, live_date)
-        if not os.path.exists(date_path):
-            continue
         files = os.listdir(date_path)
         if not files:
             try:
@@ -51,29 +54,38 @@ def check_dir_src():
             continue
         for file_name in files:
             file_path = os.path.join(date_path, file_name)
-            if not os.path.exists(file_path):
-                continue
             if re.match(r'.*\.xml$', file_name):
                 os.remove(file_path)
                 log_print('delete danmaku file %s' % file_path)
                 continue
-            if re.match(r'.*\.flv$', file_name):
-                # do reencode
-                log_print('now start reencode %s' % file_path)
-                retcode = reencode_video(file_path, gpu=True)
-                # upload
-                if retcode == 0:
-                    log_print('reencode %s Success' % file_path)
-                    reencode_flag = True
-                    bypy_path = '%s/%s/%s' % (live_id, live_date, file_name)
-                    bypy_delete(bypy_path)
-                    dir_dst_live_date = os.path.join(dir_dst, live_date)
-                    makesure_dir(dir_dst_live_date)
-                    shutil.move(file_path, 
-                        os.path.join(dir_dst_live_date, file_name))
-                    check_dir_dst()
-                else:
-                    log_print('reencode %s Failed' % file_path, lv=1)
+            if not re.match(r'.*\.flv$', file_name):
+                continue
+            # get reencode file
+            reencode_file = file_path
+            reencode_date = live_date
+            break
+        if reencode_file:
+            break
+    # do reencode
+    if reencode_file:
+        log_print('now start reencode %s' % reencode_file)
+        retry_times = 3
+        while retry_times > 0:
+            retcode = reencode_video(reencode_file, gpu=True)
+            # upload
+            if retcode == 0:
+                reencode_flag = True
+                bypy_path = '%s/%s/%s' % (live_id, reencode_date, file_name)
+                bypy_delete(bypy_path)
+                dir_dst_live_date = os.path.join(dir_dst, reencode_date)
+                makesure_dir(dir_dst_live_date)
+                shutil.move(reencode_file, 
+                    os.path.join(dir_dst_live_date, file_name))
+                break
+            retry_times -= 1
+        if retry_times == 0:
+            log_print('Give up reencode %s' % reencode_file, lv=1)
+            os.remove(reencode_file)
 
 def check_dir_dst():
     log_print('check_dir_dst')
@@ -82,6 +94,7 @@ def check_dir_dst():
     if not live_dates:
         dst_empty_flag = True
         return
+    dst_empty_flag = False
     for live_date in live_dates:
         date_path = os.path.join(dir_dst, live_date)
         if not os.path.exists(date_path):

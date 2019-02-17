@@ -131,9 +131,11 @@ def reencode_video(src, gpu=False):
     if retcode == 0:
         os.remove(src)
         os.rename(out_file, src)
+        log_print('reencode %s Success' % src)
     else:
         os.remove(out_file)
-    return 0
+        log_print('reencode %s Failed' % src, lv=1)
+    return retcode
 
 
 def flv_to_mp4(src):
