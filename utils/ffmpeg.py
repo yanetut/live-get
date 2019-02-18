@@ -118,12 +118,8 @@ def reencode_video(src, gpu=False):
             dst = out_file,
             threads = threads,
         )
-        # cmd = 'ffmpeg -i {src} -t 14400 -c:v h264 -c:a copy -vf format=yuv420p -q -1 -b:v 0 -maxrate 6000k -y {dst}'.format(
-        #     src = src,
-        #     dst = out_file,
-        # )
     else:
-        cmd = 'ffmpeg_g -i {src} -t 14400 -c:v h264 -c:a copy -vf format=yuv420p -q -1 -b:v 0 -maxrate 6000k -y {dst}'.format(
+        cmd = 'ffmpeg_g -i {src} -t 14400 -c:v h264_nvenc -preset hp -c:a copy -vf format=yuv420p -q -1 -b:v 0 -maxrate 6000k -y {dst}'.format(
             src = src,
             dst = out_file,
         )
