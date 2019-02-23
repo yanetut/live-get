@@ -82,9 +82,13 @@ def check_dir_src():
                 shutil.move(reencode_file, 
                     os.path.join(dir_dst_live_date, file_name))
                 break
+            elif retcode == 1:
+                log_print('No need reencode %s' % reencode_file)
+                retry_times = 0
+                break
             retry_times -= 1
         if retry_times == 0:
-            log_print('Give up reencode %s' % reencode_file, lv=1)
+            log_print('Give up reencode %s' % reencode_file)
             os.remove(reencode_file)
 
 def check_dir_dst():

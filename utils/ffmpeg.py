@@ -104,7 +104,13 @@ def remake_video(src):
         os.remove(out_file)
 
 
+# @return type
+# 0 -- reencode Success
+# 1 -- no need reencode
+# 2 -- reencode Failed
 def reencode_video(src, gpu=False):
+    DEFAULT_SIZE_CP = 536870912    # 512MB
+
     if not os.path.exists(src):
         log_print('{src} not exist.'.format(src = src))
         return -1
@@ -125,13 +131,20 @@ def reencode_video(src, gpu=False):
         )
     retcode = subprocess.run(cmd, shell = True).returncode
     if retcode == 0:
-        os.remove(src)
-        os.rename(out_file, src)
-        log_print('reencode %s Success' % src)
+        if os.path.getsize(src) <= os.path.getsize(out_file) + DEFAULT_SIZE_CP:
+            # no need to reencode
+            os.remove(out_file)
+            log_print('reencode %s No Need' % src)
+            return 1
+        else:
+            os.remove(src)
+            os.rename(out_file, src)
+            log_print('reencode %s Success' % src)
+            return 0
     else:
         os.remove(out_file)
         log_print('reencode %s Failed' % src, lv=1)
-    return retcode
+        return 2
 
 
 def flv_to_mp4(src):
