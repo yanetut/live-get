@@ -12,6 +12,8 @@ from utils.common import list_only_dir
 from utils.ffmpeg import reencode_video
 from utils.baiducloud import bypy_delete
 from utils.baiducloud import bypy_list
+from datetime import datetime
+from datetime import timedelta
 
 live_id = 'zard'
 
@@ -73,6 +75,10 @@ def check_dir_src():
         while retry_times > 0:
             retcode = reencode_video(reencode_file, gpu=True)
             # upload
+            date_rec = datetime.strptime(reencode_date, '%Y-%m-%d').date()
+            date_now = datetime.now().date()
+            if date_now - date_rec < timedelta(days=3):
+                retcode = 0
             if retcode == 0:
                 reencode_flag = True
                 bypy_path = '%s/%s/%s' % (live_id, reencode_date, file_name)
