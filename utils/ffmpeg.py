@@ -7,6 +7,7 @@ import re
 import subprocess
 from multiprocessing import cpu_count
 from .common import exist_cmd
+from .common import makesure_dir
 
 
 sys.path.append('..')
@@ -119,13 +120,13 @@ def reencode_video(src, gpu=False):
     out_name = '{srcname}_out.flv'.format(srcname = os.path.basename(src)[:-4])
     out_file = os.path.join(os.path.dirname(src), out_name)
     if not gpu:
-        cmd = 'ffmpeg -i {src} -t 14400 -c:v h264 -c:a copy -vf format=yuv420p -q -1 -b:v 0 -maxrate 6000k -threads {threads} -y {dst}'.format(
+        cmd = 'ffmpeg -i {src} -t 14400 -c:v h264 -c:a copy -vf format=yuv420p -q -1 -b:v 0 -maxrate 4000k -bufsize 4000k -y {dst}'.format(
             src = src,
             dst = out_file,
             threads = threads,
         )
     else:
-        cmd = 'ffmpeg_g -i {src} -t 14400 -c:v h264_nvenc -preset hp -c:a copy -vf format=yuv420p -q -1 -b:v 0 -maxrate 6000k -y {dst}'.format(
+        cmd = 'ffmpeg_g -i {src} -t 14400 -c:v h264_nvenc -preset hp -c:a copy -vf format=yuv420p -q -1 -b:v 0 -maxrate 4000k -bufsize 4000k -y {dst}'.format(
             src = src,
             dst = out_file,
         )
@@ -176,9 +177,37 @@ def flv_to_mp4(src):
         os.remove(dst)
         return False
 
-
-if __name__ == '__main__':
-    cur_dir = os.getcwd()
-    for f in os.listdir(cur_dir):
-        if re.findall(r'\.flv$', f):
-            remake_video(os.path.join(cur_dir, f))
+def to_hls(src, bv_max = 2000, dirname='sd'):
+    if not re.match(r'.*\.(flv|mp4)$', src):
+        log_print('%s format not match flv|mp4' % src, 1)
+        return False
+    if not os.path.exists(src):
+        log_print('%s not exist.' % src)
+        return False
+    dst = os.path.join(os.path.dirname(src), os.path.basename(src)[:-4])
+    makesure_dir(dst)
+    makesure_dir(os.path.join(dst, dirname))
+    ffmpeg_cmd = 'ffmpeg'
+    if exist_cmd('ffmpeg_g.exe'):
+        ffmpeg_cmd = 'ffmpeg_g'
+    bv = '-vf format=yuv420p -q -1 -r 30 -c:v h264 -b:v 0 -maxrate %sk \
+        -bufsize %sk' % (bv_max, bv_max)
+    if bv_max == 'copy':
+        bv = '-c:v copy'
+    cmd = ('{ffmpeg_cmd} -hide_banner -loglevel panic -i {src} \
+        -max_muxing_queue_size 1024 -c:a copy {bv} \
+        -hls_time 10 -hls_playlist_type vod -hls_segment_filename \
+        {dst}/{dirname}/%03d.ts {dst}/{dirname}/playlist.m3u8').format(
+        dirname=dirname,
+        bv = bv,
+        ffmpeg_cmd = ffmpeg_cmd,
+        src = src,
+        dst = dst
+    )
+    ret = subprocess.run(cmd, shell = True).returncode
+    if ret == 0:
+        log_print('flv_to_hls {src} to hls success'.format(src = src))
+        return True
+    else:
+        log_print('flv_to_hls {src} to hls error'.format(src = src), 1)
+        return False

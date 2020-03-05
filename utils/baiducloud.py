@@ -51,16 +51,8 @@ class CloudManager():
         self.live_id = live_id
         if test:
             self.cloud_path_live = 'test/{id}/'.format(id = self.live_id)
-            self.cloud_path_danmu = 'test/danmu/'
-            self.cloud_path_site_cover = 'test/site/cover/'
-            self.cloud_path_site_screenshot = 'test/site/screenshot/'
-            self.cloud_path_site_moment = 'test/site/moment/'
         else:
             self.cloud_path_live = '{id}/'.format(id = self.live_id)
-            self.cloud_path_danmu = 'danmu/{id}/'.format( id = self.live_id)
-            self.cloud_path_site_cover = 'site/cover/'
-            self.cloud_path_site_screenshot = 'site/screenshot/'
-            self.cloud_path_site_moment = 'site/moment/'
         for cloud_dir in cloud_dirs:
             date_dirs = list_only_dir(cloud_dir)
             if date_dirs:
@@ -87,14 +79,6 @@ class CloudManager():
                                         os.path.dirname(local_path)))
             if pre_type == 'live':
                 cloud_path = self.cloud_path_live + path_date
-            else:
-                cloud_path = self.cloud_path_danmu + path_date
-        elif path_type == 'screenshot':
-            cloud_path = self.cloud_path_site_screenshot + path_date
-        elif path_type == 'moment':
-            cloud_path = self.cloud_path_site_moment + path_date
-        else:
-            cloud_path = self.cloud_path_site_cover + path_date
         bc = {
             'local_path': local_path,
             'cloud_path': cloud_path

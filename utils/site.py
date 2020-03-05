@@ -147,3 +147,20 @@ def make_site_moment(moment, moment_dir):
     make_moment(flv_file, moment_flv, moment['max_sec_start'],
                 moment['sec_duration'])
     make_moment_danmu(moment, moment_danmu)
+
+# rename .flv,.xml,.mp4
+def rename_moment_file(src):
+    if not re.match(r'.*day(1|2).*', src):
+        return src
+    date_str = os.path.basename(os.path.dirname(src))
+    sub_str = src[-4:]
+    time_str = src[-9:-4]
+    if re.match(r'.*day2.*', src):
+        dst_name = (datetime.strptime(date_str, '%Y-%m-%d') + timedelta(days=1)).strftime('%y%m%d') 
+    else:
+        dst_name = datetime.strptime(date_str, '%Y-%m-%d').strftime('%y%m%d') 
+    dst_name = dst_name + time_str[:2] + time_str[-2:]
+    dst = os.path.join(os.path.dirname(src), dst_name)
+    newfile = dst + sub_str
+    os.rename(src, newfile)
+    return newfile
