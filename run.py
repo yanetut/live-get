@@ -9,6 +9,7 @@ import time
 import codecs
 import shutil
 import subprocess
+import shlex
 from threading import Thread
 from datetime import datetime
 from pathlib import PurePosixPath
@@ -23,13 +24,13 @@ from utils.site import get_topN_moments
 from utils.site import remove_site_moment
 from utils.site import rename_moment_file
 from utils.ffmpeg import to_hls
-from utils.ffmpeg import reencode_video
+from utils.ffmpeg import remake_video
 from utils.ffmpeg import flv_to_mp4
-from utils.baiducloud import CloudManager
 from utils.danmu_analysis import get_moment
 from utils.danmu_file_maker import DanMuFileMaker
 from tools.convert import covj
 from configparser import ConfigParser
+from bypy import ByPy
 
 # Global Settings
 # Live Settings
@@ -50,10 +51,6 @@ dir_local = os.path.join(dir_home, 'local')
 dir_live = os.path.join(dir_local, 'live', live_id)
 # site dir
 dir_site_moment = os.path.join(dir_local, 'site', 'moment')
-# local sync dir
-dir_cloud = os.path.join(dir_home, 'cloud')
-dir_cloud_live = os.path.join(dir_cloud, 'live', live_id)
-dir_cloud_site_moment = os.path.join(dir_cloud, 'site', 'moment')
 
 # oss
 cfg = ConfigParser()
@@ -61,6 +58,9 @@ cfg.read('config/config.ini')
 bucket = oss2.Bucket(oss2.Auth(cfg.get('oss', 'key_id'), cfg.get(
     'oss', 'key_secret')), cfg.get('oss', 'endpoint'), cfg.get('oss', 'bucket'))
 moment_base = 'moment'
+
+# bypy
+bp = ByPy()
 
 
 def start_you_get(filename, live_date_dir):
@@ -71,7 +71,7 @@ def start_you_get(filename, live_date_dir):
         # downloader you-get
         cmd = ('you-get -o %s -O %s.flv %s%s' % (live_date_dir, filename,
                                                  douyu_opencdn.URL_LIVE_DOUYU, live_id_num))
-        you_get_proc = subprocess.Popen(cmd,
+        you_get_proc = subprocess.Popen(shlex.split(cmd),
                                         stdout=downloader_out,
                                         stderr=downloader_out)
     # 等待you-get成功或错误超时
@@ -95,7 +95,6 @@ def start_you_get(filename, live_date_dir):
         else:
             log_print('you-get SUCCESS,total_line: %d' % line_count)
     return you_get_proc
-
 
 def wait_record_live():
     date_live = datetime.now().date().isoformat()
@@ -166,8 +165,8 @@ def check_live_upload():
                     log_print('add live file: %s' % os.path.join(ldir, f))
             for live_file in todo_live_list:
                 if re.match('.*.flv$', live_file):
-                    log_print('reencode live video file: %s' % live_file)
-                    reencode_video(live_file, gpu=False)
+                    log_print('remake live video file: %s' % live_file)
+                    remake_video(live_file)
     return todo_live_list
 
 
@@ -188,27 +187,27 @@ def check_site_upload():
             files = map(lambda val: val[:-4], moment_files)
             fileset = set(files)
             for f in fileset:
-                file_mp4 = os.path.join(moment_dir, '%s.mp4' % f)
-                file_xml = os.path.join(moment_dir, '%s.xml' % f)
-                if not os.path.exists(file_mp4):
-                    log_print('%s not exists' % file_mp4, 1)
+                file_video = os.path.join(moment_dir, '%s.flv' % f)
+                file_dm = os.path.join(moment_dir, '%s.xml' % f)
+                if not os.path.exists(file_video):
+                    log_print('%s not exists' % file_video, 1)
                     continue
-                if not os.path.exists(file_xml):
-                    log_print('%s not exists' % file_xml, 1)
+                if not os.path.exists(file_dm):
+                    log_print('%s not exists' % file_dm, 1)
                     continue
                 # convert hls
-                newfile_mp4 = rename_moment_file(file_mp4)
-                ret = to_hls(newfile_mp4)
+                newfile_video = rename_moment_file(file_video)
+                ret = to_hls(newfile_video)
                 if not ret:
-                    log_print('to hls failed %s, skip json convert' % newfile_mp4, 1)
+                    log_print('to hls failed %s, skip json convert' % newfile_video, 1)
                     continue
                 else:
-                    log_print('to hls success %s' % newfile_mp4)
+                    log_print('to hls success %s' % newfile_video)
                 # convert hls success then convert dm to json
-                new_moment_dir = newfile_mp4[:-4]
-                newfile_xml = rename_moment_file(file_xml)
+                new_moment_dir = newfile_video[:-4]
+                newfile_dm = rename_moment_file(file_dm)
                 dst_json = os.path.join(new_moment_dir, 'dm.json')
-                ret = covj(codecs.open(newfile_xml, 'r', encoding='utf-8'),
+                ret = covj(codecs.open(newfile_dm, 'r', encoding='utf-8'),
                            codecs.open(dst_json, 'w', encoding='utf-8'))
                 if not ret:
                     log_print('dm convert failed %s, skip upload' % dst_json, 1)
@@ -237,13 +236,13 @@ def check_site_upload():
                         if retry_times == 0:
                             ret = False
                 if not ret:
-                    log_print('upload failed %s, skip delete' % new_moment_dir, 1)
+                    log_print('upload oss failed %s, skip delete' % new_moment_dir, 1)
                     break
                 else:
-                    log_print('upload success %s' % new_moment_dir)
+                    log_print('upload oss success %s' % new_moment_dir)
                 # all convert && upload success
-                os.remove(newfile_mp4)
-                os.remove(newfile_xml)
+                os.remove(newfile_video)
+                os.remove(newfile_dm)
                 shutil.rmtree(new_moment_dir)
                 log_print('delete success %s' % new_moment_dir)
             moment_files = os.listdir(moment_dir)
@@ -251,7 +250,6 @@ def check_site_upload():
                 os.rmdir(moment_dir)
                 log_print('ALL DONE, delete %s' % moment_dir)
             max_moments = []
-
 
 def work_record_live():
     global live_online
@@ -266,7 +264,6 @@ def work_record_live():
 
 def work_upload():
     global max_moments
-    cloud_manager = CloudManager(live_id, dir_cloud_live)
     # init max_moments
     res = list_only_dir(dir_site_moment)
     if res:
@@ -284,7 +281,6 @@ def work_upload():
                 live_date = sorted(list_only_dir(dir_site_moment))[0]
             else:
                 live_date = sorted(list_only_dir(dir_live))[0]
-
             # do some site work
             # moment
             moments = []
@@ -327,10 +323,20 @@ def work_upload():
             # move to cloud dir
             for live_file in todo_live_list:
                 todo_date = os.path.basename(os.path.dirname(live_file))
-                dir_cloud_live_date = os.path.join(dir_cloud_live, todo_date)
-                makesure_dir(dir_cloud_live_date)
-                shutil.move(live_file, dir_cloud_live_date)
-                cloud_manager.add_cloud(dir_cloud_live_date)
+                remote_path = '%s/%s/%s' % (live_id, todo_date, os.path.basename(live_file))
+                retry = 3
+                ret = 0
+                while retry > 0:
+                    try:
+                        ret = bp.upload(live_file, remote_path)
+                        if ret == 60 or ret == 31363:
+                            ret = 0
+                            break;
+                    except:
+                        retry -= 1
+                if ret == 0:
+                    log_print('upload bypy %s success' % live_file)
+                    os.remove(live_file)
         # rm empty lives dir
         live_dates = list_only_dir(dir_live)
         for live_date in live_dates:
@@ -341,8 +347,7 @@ def work_upload():
                     os.rmdir(dir_live_date)
                 except PermissionError:
                     log_print('PermissionError %s' % dir_live_date)
-        cloud_manager.check_upload()
-        # live end upload site and danmu
+        # live end upload site 
         check_site_upload()
         time.sleep(300)
 
@@ -352,10 +357,10 @@ def main():
     makesure_dir(dir_log)
     makesure_dir(dir_live)
     makesure_dir(dir_site_moment)
-    makesure_dir(dir_cloud_live)
-    makesure_dir(dir_cloud_site_moment)
     # log file setting
     log_init(log_file)
+    # bypy
+    bp.list()
 
     t_record_live = Thread(target=work_record_live)
     t_upload = Thread(target=work_upload)

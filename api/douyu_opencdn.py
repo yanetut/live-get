@@ -8,7 +8,7 @@ import json
 import re
 import urllib.request
 
-URL_LIVE_DOUYU = 'http://www.douyu.com/'
+URL_LIVE_DOUYU = 'https://www.douyu.com/'
 URL_API_ROOM = 'http://open.douyucdn.cn/api/RoomApi/room/'
 
 STATUS_ROOM_ONLINE = '1'
