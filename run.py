@@ -30,7 +30,7 @@ from utils.danmu_analysis import get_moment
 from utils.danmu_file_maker import DanMuFileMaker
 from tools.convert import covj
 from configparser import ConfigParser
-from bypy import ByPy
+from utils.pcs import upload
 
 # Global Settings
 # Live Settings
@@ -51,6 +51,8 @@ dir_local = os.path.join(dir_home, 'local')
 dir_live = os.path.join(dir_local, 'live', live_id)
 # site dir
 dir_site_moment = os.path.join(dir_local, 'site', 'moment')
+# upload dir
+dir_upload = os.path.join(dir_local, 'upload')
 
 # oss
 cfg = ConfigParser()
@@ -58,9 +60,6 @@ cfg.read('config/config.ini')
 bucket = oss2.Bucket(oss2.Auth(cfg.get('oss', 'key_id'), cfg.get(
     'oss', 'key_secret')), cfg.get('oss', 'endpoint'), cfg.get('oss', 'bucket'))
 moment_base = 'moment'
-
-# bypy
-bp = ByPy()
 
 
 def start_you_get(filename, live_date_dir):
@@ -323,20 +322,16 @@ def work_upload():
             # move to cloud dir
             for live_file in todo_live_list:
                 todo_date = os.path.basename(os.path.dirname(live_file))
-                remote_path = '%s/%s/%s' % (live_id, todo_date, os.path.basename(live_file))
-                retry = 3
-                ret = 0
-                while retry > 0:
-                    try:
-                        ret = bp.upload(live_file, remote_path)
-                        if ret == 60 or ret == 31363:
-                            ret = 0
-                            break;
-                    except:
-                        retry -= 1
+                remote_path = '/apps/bypy/zard/%s' % todo_date
+                ret = upload(live_file, remote_path).returncode
                 if ret == 0:
-                    log_print('upload bypy %s success' % live_file)
+                    log_print('upload %s success' % live_file)
                     os.remove(live_file)
+                else:
+                    upload_failed_dir = os.path.join(dir_upload, todo_date)
+                    makesure_dir(upload_failed_dir)
+                    log_print('upload %s failed' % live_file)
+                    shutil.move(live_file, upload_failed_dir)
         # rm empty lives dir
         live_dates = list_only_dir(dir_live)
         for live_date in live_dates:
@@ -357,10 +352,9 @@ def main():
     makesure_dir(dir_log)
     makesure_dir(dir_live)
     makesure_dir(dir_site_moment)
+    makesure_dir(dir_upload)
     # log file setting
     log_init(log_file)
-    # bypy
-    bp.list()
 
     t_record_live = Thread(target=work_record_live)
     t_upload = Thread(target=work_upload)
