@@ -102,7 +102,10 @@ def remake_video(src):
         os.remove(src)
         os.rename(out_file, src)
     else:
-        os.remove(out_file)
+        try:
+            os.remove(out_file)
+        except:
+            pass
 
 
 # @return type
