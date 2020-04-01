@@ -26,6 +26,7 @@ from utils.site import rename_moment_file
 from utils.ffmpeg import to_hls
 from utils.ffmpeg import remake_video
 from utils.ffmpeg import flv_to_mp4
+from utils.ffmpeg import make_screenshot
 from utils.danmu_analysis import get_moment
 from utils.danmu_file_maker import DanMuFileMaker
 from tools.convert import covj
@@ -213,6 +214,9 @@ def check_site_upload():
                     continue
                 else:
                     log_print('dm convert success %s' % dst_json)
+                # make thumbnail
+                dst_thumb = os.path.join(new_moment_dir, 'thumbnail.jpg')
+                make_screenshot(newfile_video, dst_thumb, 4)
                 # upload dir
                 ret = True
                 for root, _, files in os.walk(new_moment_dir):
