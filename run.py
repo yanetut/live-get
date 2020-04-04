@@ -177,8 +177,7 @@ def check_site_upload():
         live_date = live_dates[0]
         date_now = datetime.now().date()
         date_live = datetime.strptime(live_date, '%Y-%m-%d').date()
-        lives = os.listdir(dir_live)
-        if not live_online and date_now > date_live and not lives:
+        if not live_online and date_now > date_live:
             moment_dir = os.path.join(dir_site_moment, live_date)
             moment_files = os.listdir(moment_dir)
             if not moment_files:
