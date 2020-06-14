@@ -322,7 +322,7 @@ def work_upload():
             for moment in need_make_moments:
                 make_site_moment(moment, moment_dir)
             max_moments = new_max_moments
-            # move to cloud dir
+            # upload
             for live_file in todo_live_list:
                 todo_date = os.path.basename(os.path.dirname(live_file))
                 remote_path = '/apps/bypy/zard/%s' % todo_date
@@ -335,16 +335,16 @@ def work_upload():
                     makesure_dir(upload_failed_dir)
                     log_print('upload %s failed' % live_file)
                     shutil.move(live_file, upload_failed_dir)
-        # rm empty lives dir
+        # rm lives dir
         live_dates = list_only_dir(dir_live)
         for live_date in live_dates:
             dir_live_date = os.path.join(dir_live, live_date)
-            if not os.listdir(dir_live_date) and not live_online:
+            if not live_online:
                 log_print('rmdir %s' % dir_live_date)
                 try:
-                    os.rmdir(dir_live_date)
-                except PermissionError:
-                    log_print('PermissionError %s' % dir_live_date)
+                    shutil.rmtree(dir_live_date)
+                except:
+                    log_print('rmdir Error %s' % dir_live_date)
         # live end upload site 
         check_site_upload()
         time.sleep(300)
