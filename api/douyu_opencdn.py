@@ -32,28 +32,22 @@ def _get_room_info(room_id_number):
 
 
 def is_room_online(room_id_number):
-    room_info = _get_room_info(room_id_number)
+    headers = {'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5)'
+                              ' AppleWebKit/537.36 (KHTML, like Gecko) '
+                              'Chrome/50.0.2661.102 Safari/537.36')
+               }
     try:
-        if room_info['data']['room_status'] == STATUS_ROOM_ONLINE:
+        request = urllib.request.Request('https://www.douyu.com/betard/' + room_id_number, headers=headers)
+        resp = urllib.request.urlopen(request, timeout=30).read()
+        resp_json = json.loads(resp)
+        room = resp_json['room']
+        if (room['show_status'] == 1 and room['videoLoop'] == 0):
             return True
         else:
             return False
     except:
         print('is_room_online except')
-        print(room_info)
         return False
-
-
-def get_room_title(room_id_number):
-    room_info = _get_room_info(room_id_number)
-    # do some format string?
-    return room_info['data']['room_name']
-
-
-def get_room_id_number(room_id_number):
-    room_info = _get_room_info(room_id_number)
-    return room_info['data']['room_id']
-
 
 def save_json(room_id_number, to_file):
     room_info = _get_room_info(room_id_number)
@@ -64,10 +58,7 @@ def save_json(room_id_number, to_file):
     return True
 
 def test():
-    # print('zard online status: ' + str(is_room_online('zard')))
-    print(get_room_title('zard'))
-    print(is_room_online('zard'))
-    save_json('zard', 'test.json')
+    print(is_room_online('60937'))
 
 
 if __name__ == '__main__':
